@@ -1,0 +1,151 @@
+{
+ "name": "MMVH Live Dashboard",
+ "nodes": [
+  {
+   "parameters": {
+    "httpMethod": "GET",
+    "path": "mmvh-dashboard",
+    "responseMode": "responseNode",
+    "options": {}
+   },
+   "id": "59efc5d2-1476-487c-9808-8e73bb02ee9d",
+   "name": "Dashboard Webhook",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    0,
+    300
+   ]
+  },
+  {
+   "parameters": {
+    "documentId": {
+     "__rl": true,
+     "value": "1jpMCBJ6WPg6YjQSSqdfUdIZg52WUkqYPdze0FvldFHQ",
+     "mode": "id"
+    },
+    "sheetName": {
+     "__rl": true,
+     "value": "Appointments",
+     "mode": "name",
+     "cachedResultName": "Appointments"
+    },
+    "options": {}
+   },
+   "id": "b0093988-4252-4bab-bc27-7eb3f77d1042",
+   "name": "Read Appointments",
+   "type": "n8n-nodes-base.googleSheets",
+   "typeVersion": 4,
+   "position": [
+    220,
+    300
+   ],
+   "alwaysOutputData": true
+  },
+  {
+   "parameters": {
+    "documentId": {
+     "__rl": true,
+     "value": "1jpMCBJ6WPg6YjQSSqdfUdIZg52WUkqYPdze0FvldFHQ",
+     "mode": "id"
+    },
+    "sheetName": {
+     "__rl": true,
+     "value": "CallLog",
+     "mode": "name",
+     "cachedResultName": "CallLog"
+    },
+    "options": {}
+   },
+   "id": "844e468b-f431-4a8c-a803-2e390b3a548d",
+   "name": "Read CallLog",
+   "type": "n8n-nodes-base.googleSheets",
+   "typeVersion": 4,
+   "position": [
+    440,
+    300
+   ],
+   "alwaysOutputData": true
+  },
+  {
+   "parameters": {
+    "jsCode": "// Dashboard Build \u2014 Code node for the MMVH Live Dashboard workflow.\n// Reads all Appointments + CallLog rows via $('...') and returns one item { html }.\nconst appts = $('Read Appointments').all().map(i => i.json);\nconst logs = $('Read CallLog').all().map(i => i.json);\nconst esc = (s) => String(s ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst count = (rows, key, val) => rows.filter(r => String(r[key] || '').toUpperCase() === val).length;\nconst stats = {\n  total: logs.length,\n  booked: count(logs, 'result_status', 'BOOKED'),\n  canceled: count(logs, 'result_status', 'CANCELED'),\n  rescheduled: count(logs, 'result_status', 'RESCHEDULED'),\n  unavailable: count(logs, 'result_status', 'UNAVAILABLE'),\n  handoff: count(logs, 'result_status', 'HANDOFF'),\n  needsInfo: count(logs, 'result_status', 'NEEDS_INFO'),\n  active: appts.filter(r => String(r.status || '').toUpperCase() === 'ACTIVE').length,\n};\nconst upcoming = appts.filter(r => String(r.status || '').toUpperCase() === 'ACTIVE')\n  .sort((a, b) => String(a.start_local).localeCompare(String(b.start_local)));\nconst recent = [...logs].reverse().slice(0, 12);\nconst nowStr = new Date().toLocaleString('en-US', { timeZone: 'America/Phoenix', dateStyle: 'medium', timeStyle: 'medium' });\nconst card = (label, val, color) => `<div style=\"flex:1;min-width:130px;background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 2px 10px rgba(0,0,0,.08)\"><div style=\"font-size:30px;font-weight:800;color:${color}\">${val}</div><div style=\"font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#667\">${label}</div></div>`;\nconst apptRows = upcoming.map(r => `<tr><td>${esc(r.start_local)}</td><td>${esc(r.pet_name)} (${esc(r.species)})</td><td>${esc(r.service_id)}</td><td>${esc(r.provider)}</td><td>${esc(r.owner_name)}</td><td><code>${esc(r.reference)}</code></td></tr>`).join('');\nconst logRows = recent.map(r => `<tr><td>${esc(String(r.timestamp || '').slice(0, 19).replace('T', ' '))}</td><td>${esc(r.interpreted_intent)}</td><td><b>${esc(r.result_status)}</b></td><td>${esc(String(r.message || '').slice(0, 90))}</td><td><code>${esc(r.reference || '')}</code></td></tr>`).join('');\nconst html = `<!doctype html><html><head><meta charset=\"utf-8\"><meta http-equiv=\"refresh\" content=\"15\">\n<title>MMVH \u2014 Live Front Desk</title></head>\n<body style=\"margin:0;font-family:system-ui,Segoe UI,Arial;background:#f2f5f9;color:#123\">\n<div style=\"max-width:1060px;margin:0 auto;padding:22px\">\n<div style=\"display:flex;align-items:baseline;gap:12px\"><h1 style=\"margin:0;font-size:26px\">\ud83d\udc3e Meow Meow Veterinary Hospital</h1><span style=\"color:#567\">Live Front Desk \u2014 auto-refresh 15s \u00b7 ${esc(nowStr)} (Phoenix)</span></div>\n<div style=\"display:flex;gap:12px;flex-wrap:wrap;margin:18px 0\">\n${card('Requests handled', stats.total, '#1450a0')}${card('Booked', stats.booked, '#1a8f4a')}${card('Active appointments', stats.active, '#1a8f4a')}${card('Canceled', stats.canceled, '#b06000')}${card('Rescheduled', stats.rescheduled, '#6a3fb5')}${card('Turned away (slot/rules)', stats.unavailable, '#b06000')}${card('Handed to staff', stats.handoff, '#c0392b')}${card('Asked for info', stats.needsInfo, '#567')}\n</div>\n<h2 style=\"font-size:18px;margin:20px 0 8px\">Upcoming appointments</h2>\n<table style=\"width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.06)\">\n<tr style=\"background:#1450a0;color:#fff;text-align:left\"><th style=\"padding:9px\">When (Phoenix)</th><th>Pet</th><th>Service</th><th>Provider</th><th>Owner</th><th>Reference</th></tr>\n${apptRows || '<tr><td colspan=\"6\" style=\"padding:12px\">No active appointments.</td></tr>'}\n</table>\n<h2 style=\"font-size:18px;margin:22px 0 8px\">Recent front-desk activity</h2>\n<table style=\"width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.06)\">\n<tr style=\"background:#33475b;color:#fff;text-align:left\"><th style=\"padding:9px\">Time (UTC)</th><th>Intent</th><th>Result</th><th>Message</th><th>Reference</th></tr>\n${logRows || '<tr><td colspan=\"5\" style=\"padding:12px\">No requests yet.</td></tr>'}\n</table>\n<p style=\"color:#789;font-size:12px;margin-top:14px\">Every request \u2014 including refusals, handoffs and attacks \u2014 is logged. Nothing is silently dropped.</p>\n</div></body></html>`;\nreturn [{ json: { html } }];\n"
+   },
+   "id": "332bd43d-7960-4eef-b720-c7baf37ea354",
+   "name": "Dashboard Build",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    660,
+    300
+   ]
+  },
+  {
+   "parameters": {
+    "respondWith": "text",
+    "responseBody": "={{ $json.html }}",
+    "options": {
+     "responseContentType": "text/html"
+    }
+   },
+   "id": "c55ff3a5-c16f-4159-bbc4-0f65503fa2e0",
+   "name": "Respond",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    880,
+    300
+   ]
+  }
+ ],
+ "connections": {
+  "Dashboard Webhook": {
+   "main": [
+    [
+     {
+      "node": "Read Appointments",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Read Appointments": {
+   "main": [
+    [
+     {
+      "node": "Read CallLog",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Read CallLog": {
+   "main": [
+    [
+     {
+      "node": "Dashboard Build",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Dashboard Build": {
+   "main": [
+    [
+     {
+      "node": "Respond",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1"
+ },
+ "staticData": null
+}
