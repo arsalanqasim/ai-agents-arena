@@ -24,7 +24,7 @@ thrash on one blocker for more than 10 minutes — report it to Arsalan in one l
 
 ## STEP 3 — Build the workflow (docs/01 map + docs/02 wiring, exactly)
 - Create the workflow in n8n following the node map in docs/01 §2 and wiring notes in docs/02. Node NAMES must match the docs character-for-character where the code references them: `Judge Form`, `Build Context`, `Parse + Safety`, `Validate Booking`, `Conflict + Alternatives` (the JS calls $('Node Name') — a renamed node breaks the chain).
-- Paste each Code node's JS from code/01…06 in order. LLM node = HTTP Request per docs/02 (Groq, model llama-3.3-70b-versatile, JSON mode, temperature 0, system prompt from prompts/llm-system-prompt.txt).
+- Paste each Code node's JS from code/01…06 in order. LLM node = HTTP Request per docs/02 (Groq, model openai/gpt-oss-120b, JSON mode, temperature 0, system prompt from prompts/llm-system-prompt.txt).
 - Build order: form → config read → build context → LLM → parse+safety → calllog read → replay check → route → BOOK branch (validate → provider calendar fetch → conflict → create event → save appointment) → CANCEL branch → HANDOFF/NEEDS_INFO endings → universal CallLog append → Form Ending.
 - Activate the workflow and use the production Form URL for tests (test URL is fine during wiring).
 

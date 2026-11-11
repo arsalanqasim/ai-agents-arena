@@ -39,7 +39,7 @@ POST https://api.groq.com/openai/v1/chat/completions
 Headers: Authorization = Bearer <GROQ KEY>, Content-Type application/json
 Body JSON (use expressions for user content):
 {
-  "model": "llama-3.3-70b-versatile",
+  "model": "openai/gpt-oss-120b",
   "response_format": {"type": "json_object"},
   "temperature": 0,
   "messages": [

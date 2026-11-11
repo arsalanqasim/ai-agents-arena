@@ -20,7 +20,7 @@ resistance, never invent bookings, generic verification failure for cancellation
 
 ## Stack decisions (locked)
 - Platform: n8n (local instance run by Codex on the operator laptop; n8n Cloud is the fallback if local is not up by 12:45 PKT).
-- LLM: Groq `llama-3.3-70b-versatile` via its OpenAI-compatible endpoint, JSON mode, temperature 0. Gemini is the backup LLM.
+- LLM: Groq `openai/gpt-oss-120b` via its OpenAI-compatible endpoint, JSON mode, temperature 0. Gemini is the backup LLM.
 - Data: Google Calendar calendars `MMVH-Mr Saanp` and `MMVH-Miss Loomri`; Google Sheet `MMVH Records`.
 - Business clock: ARENA_NOW = 2026-11-11 09:00 America/Phoenix (fixed UTC-07:00). Config is read from the Sheet at the start of every execution (extension E4).
 - Extensions implemented in design: E1 alternatives, E3 replay protection, E4 live config. E2 reschedule only if time remains after the core is green.
